@@ -15,7 +15,7 @@ from contextlib import closing
 # Parsing Library
 from pybtex.database.input import bibtex
 
-import tex2speech.expand_labels
+import expand_labels
 # Internal classes
 from conversion_db import ConversionDB
 from conversion_parser import ConversionParser
