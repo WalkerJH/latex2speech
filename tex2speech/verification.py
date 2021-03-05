@@ -94,10 +94,10 @@ for inputFile in files:
         except Exception as e:
           exc_type, exc_value, exc_traceback = sys.exc_info()
           logging.error('Message: ' + str(e))
-          logging.debug(repr(traceback.format_tb(exc_traceback))
+          logging.debug(repr(traceback.format_tb(exc_traceback)))
   except FileNotFoundError as e:
     exc_type, exc_value, exc_traceback = sys.exc_info()
     logging.exception("Message: " + str(e))
-    logging.debug(repr(traceback.format_tb(exc_traceback))
+    logging.debug(repr(traceback.format_tb(exc_traceback)))
 
 print('Out of ' + str(discoveredFiles) + ' discovered files, ' + str(openedFiles) + ' could be opened and ' + str(workingParses) + ' succesfully parsed.')
