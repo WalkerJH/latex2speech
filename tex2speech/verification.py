@@ -5,28 +5,12 @@ For testing (most of) the tex2speech system against a massive collection
 This is pretty bare-bones and is only useful for our specific setup.
 '''
 
-from os import listdir, remove
+from os import listdir
 from os.path import isfile, join
-import re
-import logging
-import traceback
-import sys
 
 from TexSoup import TexSoup
 
-from aws_polly_render import start_polly
-
-files_with_begin = []
-files_where_parser_started = []
-files_where_parser_succeeded = []
-files_where_parser_failed = []
-
-def purge(dir, pattern):
-    for f in listdir(dir):
-        if re.search(pattern, f):
-            remove(join(dir, f))
-
-fileDir = '/projects/49x/tex2speech/latex2speech/tex2speech/upload'
+fileDir = 'Documentation/sample_input_files/'
 files = []
 for f in listdir(fileDir):
   fname = join(fileDir, f)
@@ -48,9 +32,14 @@ or manually delete them itself.
 Two levels of errors: Runtime and semantic. Clearly runtime are
 1000 times easier to check for, so we'll start with that.
 '''
+import re
+import logging
+import traceback
+import sys
 
+from aws_polly_render import start_polly
 
-logging.basicConfig(filename="verification.log", level=logging.DEBUG)
+logging.basicConfig(filename="verfication.log", level=logging.DEBUG)
 log = logging.getLogger('verification')
 print(log)
 
@@ -62,6 +51,7 @@ discoveredFiles = len(files)
 openedFiles = 0
 workingParses = 0
 
+print('Batch of files: ' + str(files))
 for inputFile in files:
   try:
     with open(inputFile, 'r') as input:
@@ -78,9 +68,8 @@ for inputFile in files:
                   (1 if match.group(3) else 0)
           if not count == 1:
             exc_type, exc_value, exc_traceback = sys.exc_info()
-            logging.exception("ASSERT::" + str(e))
+            logging.error("More than one file found, either regex or me is dumb.")
             logging.debug(repr(traceback.format_tb(exc_traceback)))
-            logging.debug(repr(traceback.extract_stack().format()))
           else:
             i = 1
             while not match.group(i):
@@ -104,24 +93,11 @@ for inputFile in files:
           workingParses += 1
         except Exception as e:
           exc_type, exc_value, exc_traceback = sys.exc_info()
-          logging.exception("PARSER_FAIL::" + str(e))
-          logging.debug(repr(traceback.format_tb(exc_traceback)))
-          logging.debug(repr(traceback.extract_stack().format()))
+          logging.error('Message: ' + str(e))
+          logging.debug(repr(traceback.format_tb(exc_traceback))
   except FileNotFoundError as e:
     exc_type, exc_value, exc_traceback = sys.exc_info()
-    logging.exception("FILE_DNE::" + str(e))
-    logging.debug(repr(traceback.format_tb(exc_traceback)))
-    logging.debug(repr(traceback.extract_stack().format()))
-  except UnicodeDecodeError as e:
-    exc_type, exc_value, exc_traceback = sys.exc_info()
-    logging.exception("INVLD_FILE::" + str(e))
-    logging.debug(repr(traceback.format_tb(exc_traceback)))
-    logging.debug(repr(traceback.extract_stack().format()))
-  except Exception as e:
-    exc_type, exc_value, exc_traceback = sys.exc_info()
-    logging.exception("UNKN_FAIL::" + str(e))
-    logging.debug(repr(traceback.format_tb(exc_traceback)))
-    logging.debug(repr(traceback.extract_stack().format()))
-  #purge('/projects/49x/tex2speech/latex2speech/tex2speech/', 'final.*\.tex')
+    logging.exception("Message: " + str(e))
+    logging.debug(repr(traceback.format_tb(exc_traceback))
 
 print('Out of ' + str(discoveredFiles) + ' discovered files, ' + str(openedFiles) + ' could be opened and ' + str(workingParses) + ' succesfully parsed.')
