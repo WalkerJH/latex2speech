@@ -11,8 +11,11 @@ from os.path import isfile, join
 from TexSoup import TexSoup
 
 fileDir = 'Documentation/sample_input_files/'
-
-files = [f for f in listdir(fileDir) if isfile(join(fileDir, f))]
+files = []
+for f in listdir(fileDir):
+  fname = join(fileDir, f)
+  if isfile(fname):
+    files.append(fname)
 
 '''
 OPTION 1:
@@ -29,14 +32,18 @@ or manually delete them itself.
 Two levels of errors: Runtime and semantic. Clearly runtime are
 1000 times easier to check for, so we'll start with that.
 '''
-
-from aws_polly_render import start_polly
 import re
 import logging
+import traceback
+import sys
 
-log = logging.basicConfig(filename="verfication.log", encoding="utf-8", level=logging.DEBUG)
+from aws_polly_render import start_polly
 
-master = []
+logging.basicConfig(filename="verfication.log", level=logging.DEBUG)
+log = logging.getLogger('verification')
+print(log)
+
+main = []
 inputList = []
 bibContents = []
 
@@ -44,15 +51,15 @@ discoveredFiles = len(files)
 openedFiles = 0
 workingParses = 0
 
-print('Batch of files: ' + files)
+print('Batch of files: ' + str(files))
 for inputFile in files:
-  try :
+  try:
     with open(inputFile, 'r') as input:
       openedFiles += 1
       input = input.read()
       if r"\begin{document}" in input:
-        master.append(f)
-        pat = r'\input{(.*)}|\include{(.*)}|\bibliography{(.*)}'
+        main.append(f)
+        pat = r'\\input{(.*)}|\\include{(.*)}|\bibliography{(.*)}'
         matchIter = re.finditer(pat, input)
         for match in matchIter:
           # lol
@@ -60,7 +67,9 @@ for inputFile in files:
                   (1 if match.group(2) else 0) + \
                   (1 if match.group(3) else 0)
           if not count == 1:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
             logging.error("More than one file found, either regex or me is dumb.")
+            logging.debug(repr(traceback.format_tb(exc_traceback)))
           else:
             i = 1
             while not match.group(i):
@@ -83,11 +92,12 @@ for inputFile in files:
           start_polly(main, inputList, bibContents)
           workingParses += 1
         except Exception as e:
-          logging.error('An error occurred while parsing')
+          exc_type, exc_value, exc_traceback = sys.exc_info()
           logging.error('Message: ' + str(e))
-
+          logging.debug(repr(traceback.format_tb(exc_traceback))
   except FileNotFoundError as e:
-    logging.exception("File " + inputFile + " could not be found.")
+    exc_type, exc_value, exc_traceback = sys.exc_info()
     logging.exception("Message: " + str(e))
+    logging.debug(repr(traceback.format_tb(exc_traceback))
 
 print('Out of ' + str(discoveredFiles) + ' discovered files, ' + str(openedFiles) + ' could be opened and ' + str(workingParses) + ' succesfully parsed.')
