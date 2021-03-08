@@ -276,8 +276,8 @@ def start_polly(main, input, bib_contents):
 
     for master in master_files:
         # Expand Labels then open document
-        tex2speech.expand_labels.expand_doc_new_labels(master[0])
-        tex_file = open(master[0], "r")
+        expand_labels.expandDocNewLabels(master[0])
+        texFile = open(master[0], "r")
 
         # Call parsing here
         parsed_contents = start_conversion(tex_file.read())
@@ -286,11 +286,18 @@ def start_polly(main, input, bib_contents):
             print(master)
             parsed_contents += parse_bib_file(master[1])
 
-        print("\n\nCONTENTS AFTER CHANGE\n\n" + parsed_contents + "\n\n")
+        # print("\n\nCONTENTS AFTER CHANGE\n\n" + parsed_contents + "\n\n")
 
         # Feed to Amazon Polly here
         # audio_link = tts_of_file(master, parsed_contents)
         audio_link = "hi" # I use hi because I don't want it to upload to S3 bucket right now :]
         links.append(audio_link)
 
+    # FOR VERIFICATION: DELEITNG FILE
+    num = 1
+    name = os.path.join(os.getcwd(), "final"+str(num)+".tex")
+    while os.path.exists(name):
+        os.remove(name)
+        num += 1
+        name = os.path.join(os.getcwd(), "final"+str(num)+".tex")
     return links

@@ -62,12 +62,23 @@ discoveredFiles = len(files)
 openedFiles = 0
 workingParses = 0
 
+def getFileList(files):
+  s = "["
+  for f in files:
+    s += f.rsplit('/')[-1]
+  s += "]"
+  return s
+
+def getCurFiles(inputFile):
+  return inputFile.rsplit('/')[-1] + ' Input: ' + getFileList(inputList) + ' Bib: ' + getFileList(bibContents)
+
 for inputFile in files:
   try:
     with open(inputFile, 'r') as input:
       openedFiles += 1
       input = input.read()
       if r"\begin{document}" in input:
+        files_with_begin.append(getCurFiles(inputFile))
         main.append(f)
         pat = r'\\input{(.*)}|\\include{(.*)}|\bibliography{(.*)}'
         matchIter = re.finditer(pat, input)
@@ -78,7 +89,7 @@ for inputFile in files:
                   (1 if match.group(3) else 0)
           if not count == 1:
             exc_type, exc_value, exc_traceback = sys.exc_info()
-            logging.exception("ASSERT::" + str(e))
+            logging.exception("FILES:: " + getCurFiles(inputFile))
             logging.debug(repr(traceback.format_tb(exc_traceback)))
             logging.debug(repr(traceback.extract_stack().format()))
           else:
@@ -100,28 +111,43 @@ for inputFile in files:
         # Start start_polly here
         # TODO: Make this a function at very least
         try:
+          files_where_parser_started.append(getCurFiles(inputFile))
           start_polly(main, inputList, bibContents)
+          files_where_parser_succeeded.append(getCurFiles(inputFile))
           workingParses += 1
         except Exception as e:
+          files_where_parser_failed.append(getCurFiles(inputFile))
           exc_type, exc_value, exc_traceback = sys.exc_info()
-          logging.exception("PARSER_FAIL::" + str(e))
+          logging.exception("FILES:: " + getCurFiles(inputFile))
           logging.debug(repr(traceback.format_tb(exc_traceback)))
           logging.debug(repr(traceback.extract_stack().format()))
   except FileNotFoundError as e:
     exc_type, exc_value, exc_traceback = sys.exc_info()
-    logging.exception("FILE_DNE::" + str(e))
+    logging.exception("FILES:: " + getCurFiles(inputFile))
     logging.debug(repr(traceback.format_tb(exc_traceback)))
     logging.debug(repr(traceback.extract_stack().format()))
   except UnicodeDecodeError as e:
     exc_type, exc_value, exc_traceback = sys.exc_info()
-    logging.exception("INVLD_FILE::" + str(e))
+    logging.exception("FILES:: " + getCurFiles(inputFile))
     logging.debug(repr(traceback.format_tb(exc_traceback)))
     logging.debug(repr(traceback.extract_stack().format()))
   except Exception as e:
     exc_type, exc_value, exc_traceback = sys.exc_info()
-    logging.exception("UNKN_FAIL::" + str(e))
+    logging.exception("FILES:: " + getCurFiles(inputFile))
     logging.debug(repr(traceback.format_tb(exc_traceback)))
     logging.debug(repr(traceback.extract_stack().format()))
   #purge('/projects/49x/tex2speech/latex2speech/tex2speech/', 'final.*\.tex')
 
-print('Out of ' + str(discoveredFiles) + ' discovered files, ' + str(openedFiles) + ' could be opened and ' + str(workingParses) + ' succesfully parsed.')
+logging.debug("RESULTS::")
+logging.debug("files_with_begin:")
+logging.debug("\tLength: " + str(len(files_with_begin)))
+logging.debug("\tNames: " + repr(files_with_begin))
+logging.debug("files_where_parser_started:")
+logging.debug("\tLength: " + str(len(files_where_parser_started)))
+logging.debug("\tNames: " + repr(files_where_parser_started))
+logging.debug("files_where_parser_succeeded:")
+logging.debug("\tLength: " + str(len(files_where_parser_succeeded)))
+logging.debug("\tNames: " + repr(files_where_parser_succeeded))
+logging.debug("files_where_parser_failed:")
+logging.debug("\tLength: " + str(len(files_where_parser_failed)))
+logging.debug("\tNames: " + repr(files_where_parser_failed))
