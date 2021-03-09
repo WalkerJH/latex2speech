@@ -5,6 +5,7 @@ For testing (most of) the tex2speech system against a massive collection
 This is pretty bare-bones and is only useful for our specific setup.
 '''
 
+import os
 from os import listdir, remove
 from os.path import isfile, join
 import re
@@ -19,7 +20,6 @@ from aws_polly_render import start_polly
 files_with_begin = []
 files_where_parser_started = []
 files_where_parser_succeeded = []
-files_where_parser_failed = []
 
 def purge(dir, pattern):
     for f in listdir(dir):
@@ -51,8 +51,6 @@ Two levels of errors: Runtime and semantic. Clearly runtime are
 
 
 logging.basicConfig(filename="verification.log", level=logging.DEBUG)
-log = logging.getLogger('verification')
-print(log)
 
 main = []
 inputList = []
@@ -72,13 +70,20 @@ def getFileList(files):
 def getCurFiles(inputFile):
   return inputFile.rsplit('/')[-1] + ' Input: ' + getFileList(inputList) + ' Bib: ' + getFileList(bibContents)
 
+#logging.debug("Files: " + getFileList(files))
+total_files = 0
+
 for inputFile in files:
+  total_files += 1
+  logging.debug('===========================================================================')
+  logging.debug("STARTED::" + inputFile)
+  logging.debug('===========================================================================')
   try:
     with open(inputFile, 'r') as input:
       openedFiles += 1
       input = input.read()
       if r"\begin{document}" in input:
-        files_with_begin.append(getCurFiles(inputFile))
+        files_with_begin.append(inputFile)
         main.append(f)
         pat = r'\\input{(.*)}|\\include{(.*)}|\bibliography{(.*)}'
         matchIter = re.finditer(pat, input)
@@ -89,9 +94,11 @@ for inputFile in files:
                   (1 if match.group(3) else 0)
           if not count == 1:
             exc_type, exc_value, exc_traceback = sys.exc_info()
-            logging.exception("FILES:: " + getCurFiles(inputFile))
+            logging.exception("ERROR::" + getCurFiles(inputFile))
+            logging.debug('++++++++++++++++++++++++++++BEGIN TRACEBACK+++++++++++++++++++++++++++++')
             logging.debug(repr(traceback.format_tb(exc_traceback)))
             logging.debug(repr(traceback.extract_stack().format()))
+            logging.debug('+++++++++++++++++++++++++++++END TRACEBACK++++++++++++++++++++++++++++++')
           else:
             i = 1
             while not match.group(i):
@@ -111,43 +118,65 @@ for inputFile in files:
         # Start start_polly here
         # TODO: Make this a function at very least
         try:
-          files_where_parser_started.append(getCurFiles(inputFile))
+          files_where_parser_started.append(inputFile)
           start_polly(main, inputList, bibContents)
-          files_where_parser_succeeded.append(getCurFiles(inputFile))
+          files_where_parser_succeeded.append(inputFile)
           workingParses += 1
         except Exception as e:
-          files_where_parser_failed.append(getCurFiles(inputFile))
           exc_type, exc_value, exc_traceback = sys.exc_info()
-          logging.exception("FILES:: " + getCurFiles(inputFile))
+          logging.exception("ERROR::" + getCurFiles(inputFile))
+          logging.debug('++++++++++++++++++++++++++++BEGIN TRACEBACK+++++++++++++++++++++++++++++')
           logging.debug(repr(traceback.format_tb(exc_traceback)))
           logging.debug(repr(traceback.extract_stack().format()))
+          logging.debug('+++++++++++++++++++++++++++++END TRACEBACK++++++++++++++++++++++++++++++')
   except FileNotFoundError as e:
     exc_type, exc_value, exc_traceback = sys.exc_info()
-    logging.exception("FILES:: " + getCurFiles(inputFile))
+    logging.exception("ERROR::" + getCurFiles(inputFile))
+    logging.debug('++++++++++++++++++++++++++++BEGIN TRACEBACK+++++++++++++++++++++++++++++')
     logging.debug(repr(traceback.format_tb(exc_traceback)))
     logging.debug(repr(traceback.extract_stack().format()))
+    logging.debug('+++++++++++++++++++++++++++++END TRACEBACK++++++++++++++++++++++++++++++')
   except UnicodeDecodeError as e:
     exc_type, exc_value, exc_traceback = sys.exc_info()
-    logging.exception("FILES:: " + getCurFiles(inputFile))
+    logging.exception("ERROR::" + getCurFiles(inputFile))
+    logging.debug('++++++++++++++++++++++++++++BEGIN TRACEBACK+++++++++++++++++++++++++++++')
     logging.debug(repr(traceback.format_tb(exc_traceback)))
     logging.debug(repr(traceback.extract_stack().format()))
+    logging.debug('+++++++++++++++++++++++++++++END TRACEBACK++++++++++++++++++++++++++++++')
   except Exception as e:
     exc_type, exc_value, exc_traceback = sys.exc_info()
-    logging.exception("FILES:: " + getCurFiles(inputFile))
+    logging.exception("ERROR::" + getCurFiles(inputFile))
+    logging.debug('++++++++++++++++++++++++++++BEGIN TRACEBACK+++++++++++++++++++++++++++++')
     logging.debug(repr(traceback.format_tb(exc_traceback)))
     logging.debug(repr(traceback.extract_stack().format()))
+    logging.debug('+++++++++++++++++++++++++++++END TRACEBACK++++++++++++++++++++++++++++++')
+
+  num = 1
+  name = os.path.join(os.getcwd(), "final"+str(num)+".tex")
+  while os.path.exists(name):
+    os.remove(name)
+    num += 1
+    name = os.path.join(os.getcwd(), "final"+str(num)+".tex")
+
+  if inputFile in files_with_begin:
+    logging.debug(r"PASS:: \begin{document} found in " + inputFile)
+    fileList = getCurFiles(inputFile)
+    if inputFile in files_where_parser_started:
+      logging.debug(r"PASS:: Parser started in " + fileList)
+      if inputFile in files_where_parser_succeeded:
+        logging.debug(r"PASS:: Parser succeeded in " + fileList)
+      else:
+        logging.debug(r"FAIL:: Parser failed in " + fileList)
+    else:
+      logging.debug(r"FAIL:: Parser not started in " + fileList)
+  else:
+    logging.debug(r"FAIL:: \begin{document} not found in " + inputFile)
+  
+  logging.info("Of " + str(total_files) + " files, " + str(len(files_with_begin)) + " had begin, " + str(len(files_where_parser_started)) + " started their parser and " + str(len(files_where_parser_succeeded)) + " where the parsing succeeded.")
+
+  logging.debug('===========================================================================')
+  logging.debug('FINISHED::' + inputFile)
+  logging.debug('===========================================================================')
+
   #purge('/projects/49x/tex2speech/latex2speech/tex2speech/', 'final.*\.tex')
 
-logging.debug("RESULTS::")
-logging.debug("files_with_begin:")
-logging.debug("\tLength: " + str(len(files_with_begin)))
-logging.debug("\tNames: " + repr(files_with_begin))
-logging.debug("files_where_parser_started:")
-logging.debug("\tLength: " + str(len(files_where_parser_started)))
-logging.debug("\tNames: " + repr(files_where_parser_started))
-logging.debug("files_where_parser_succeeded:")
-logging.debug("\tLength: " + str(len(files_where_parser_succeeded)))
-logging.debug("\tNames: " + repr(files_where_parser_succeeded))
-logging.debug("files_where_parser_failed:")
-logging.debug("\tLength: " + str(len(files_where_parser_failed)))
-logging.debug("\tNames: " + repr(files_where_parser_failed))

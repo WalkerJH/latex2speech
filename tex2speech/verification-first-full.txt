@@ -2,6 +2,7 @@ ASSERT::      0
 PARSER_FAIL:: 1269
   No such file or directory: 'final1.tex' <- 977
     This is most likely because of my jank file deletion, which only applies to verification itself :)
-FILE_DNE:: 
-INVLD_FILE:: 
-UNKN_FAIL:: 
+  I don't understand this <- 292 (the rest of them)
+FILE_DNE::    0 
+INVLD_FILE::  194
+UNKN_FAIL::   0
