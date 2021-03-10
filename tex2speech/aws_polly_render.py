@@ -276,8 +276,8 @@ def start_polly(main, input, bib_contents):
 
     for master in master_files:
         # Expand Labels then open document
-        expand_labels.expandDocNewLabels(master[0])
-        texFile = open(master[0], "r")
+        expand_labels.expand_doc_new_labels(master[0])
+        tex_file = open(master[0], "r")
 
         # Call parsing here
         parsed_contents = start_conversion(tex_file.read())
